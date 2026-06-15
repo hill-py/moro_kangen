@@ -6,4 +6,4 @@ if (isLoggedIn()) {
 } else {
     header('Location: auth/login.php');
 }
-exit;
+exit;?>

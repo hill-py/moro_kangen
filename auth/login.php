@@ -6,7 +6,7 @@ if (isLoggedIn()) {
     header('Location: ../dashboard/index.php');
     exit;
 }
-
+//opotoh
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

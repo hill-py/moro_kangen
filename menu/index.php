@@ -253,6 +253,87 @@ require_once __DIR__ . '/../includes/header.php';
 <?php endif; ?>
 
 <?php if (isKaryawan()): ?>
+
+    <!-- ==================== BAGIAN: GALERI PREVIEW VISUAL BERDASARKAN KATEGORI ==================== -->
+    <div class="menu-preview-section" style="margin-bottom: 35px;">
+        
+        <!-- 1. KATEGORI MAKANAN -->
+        <h4 style="margin-bottom: 12px; color: #2d3748; font-weight: 600; border-left: 4px solid #e67e22; padding-left: 8px;">Kategori Makanan</h4>
+        <div class="menu-gallery-row" style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 25px;">
+            <?php 
+            $hasMakanan = false;
+            foreach ($menus as $menu): 
+                // Jika kategorinya adalah minuman, lewati (karena ini baris makanan)
+                if (strtolower($menu['kategori']) === 'minuman') continue;
+                $hasMakanan = true;
+
+                $imageName = strtolower(str_replace(' ', '-', $menu['nama_menu'])) . '.jpg';
+                $imagePath = '../img/' . $imageName;
+
+                if (!file_exists(__DIR__ . '/../img/' . $imageName)) {
+                    $imagePath = '../img/default-food.jpg';
+                }
+            ?>
+                <div class="menu-preview-card" style="background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); width: 190px; overflow: hidden; border: 1px solid #e2e8f0;">
+                    <img src="<?= h($imagePath) ?>" alt="<?= h($menu['nama_menu']) ?>" style="width: 100%; height: 130px; object-fit: cover;">
+                    <div style="padding: 12px;">
+                        <span style="font-size: 10px; color: #a0aec0; text-transform: uppercase; font-weight: bold;"><?= h($menu['kategori']) ?></span>
+                        <h4 style="margin: 4px 0; font-size: 14px; color: #2d3748; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= h($menu['nama_menu']) ?>">
+                            <?= h($menu['nama_menu']) ?>
+                        </h4>
+                        <p style="margin: 0 0 10px 0; font-weight: bold; color: #e67e22; font-size: 13px;"><?= rupiah($menu['harga']) ?></p>
+                        <span class="badge badge-<?= h($menu['status_menu']) ?>" style="font-size: 10px; padding: 2px 6px; border-radius: 4px;">
+                            <?= h($menu['status_menu']) ?>
+                        </span>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+            
+            <?php if (!$hasMakanan): ?>
+                <p style="color: #a0aec0; font-style: italic; font-size: 13px; margin-left: 5px;">Belum ada data menu makanan.</p>
+            <?php endif; ?>
+        </div>
+
+        <!-- 2. KATEGORI MINUMAN -->
+        <h4 style="margin-bottom: 12px; color: #2d3748; font-weight: 600; border-left: 4px solid #3498db; padding-left: 8px;">Kategori Minuman</h4>
+        <div class="menu-gallery-row" style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 10px;">
+            <?php 
+            $hasMinuman = false;
+            foreach ($menus as $menu): 
+                // Hanya tampilkan jika kata kategorinya tepat "minuman"
+                if (strtolower($menu['kategori']) !== 'minuman') continue;
+                $hasMinuman = true;
+
+                $imageName = strtolower(str_replace(' ', '-', $menu['nama_menu'])) . '.jpg';
+                $imagePath = '../img/' . $imageName;
+
+                if (!file_exists(__DIR__ . '/../img/' . $imageName)) {
+                    $imagePath = '../img/default-food.jpg';
+                }
+            ?>
+                <div class="menu-preview-card" style="background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); width: 190px; overflow: hidden; border: 1px solid #e2e8f0;">
+                    <img src="<?= h($imagePath) ?>" alt="<?= h($menu['nama_menu']) ?>" style="width: 100%; height: 130px; object-fit: cover;">
+                    <div style="padding: 12px;">
+                        <span style="font-size: 10px; color: #a0aec0; text-transform: uppercase; font-weight: bold;"><?= h($menu['kategori']) ?></span>
+                        <h4 style="margin: 4px 0; font-size: 14px; color: #2d3748; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= h($menu['nama_menu']) ?>">
+                            <?= h($menu['nama_menu']) ?>
+                        </h4>
+                        <p style="margin: 0 0 10px 0; font-weight: bold; color: #e67e22; font-size: 13px;"><?= rupiah($menu['harga']) ?></p>
+                        <span class="badge badge-<?= h($menu['status_menu']) ?>" style="font-size: 10px; padding: 2px 6px; border-radius: 4px;">
+                            <?= h($menu['status_menu']) ?>
+                        </span>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+
+            <?php if (!$hasMinuman): ?>
+                <p style="color: #a0aec0; font-style: italic; font-size: 13px; margin-left: 5px;">Belum ada data menu minuman.</p>
+            <?php endif; ?>
+        </div>
+
+    </div>
+    <!-- ==================== END BAGIAN: GALERI PREVIEW VISUAL ==================== -->
+
 <div class="card">
 
     <div class="card-header">
@@ -293,6 +374,7 @@ require_once __DIR__ . '/../includes/header.php';
                     type="text"
                     name="kategori"
                     value="<?= h($formData['kategori']) ?>"
+                    placeholder="Ketik 'Minuman' atau kategori makanan (Bakso/Mie)"
                     required
                 >
             </div>

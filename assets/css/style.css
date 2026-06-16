@@ -654,24 +654,25 @@ tbody tr:hover {
 }
 
 .menu-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-  margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
 }
 
 .menu-card {
-  background: #fff;
-  border-radius: 10px;
-  border: 2px solid #e5e7eb;
-  padding: 14px;
-  cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    padding: 0;
+    transition: 0.2s;
 }
 
 .menu-card:hover:not(.menu-habis) {
   border-color: #e8a020;
   box-shadow: 0 2px 12px rgba(232,160,32,0.15);
+  transform: translateY(-3px);
 }
 
 .menu-card.menu-habis {
@@ -936,4 +937,101 @@ tbody tr:hover {
 .area-kursi.disabled {
     opacity: 0.4;
     pointer-events: none;
+}
+
+/* ------------------------------------------------------------
+   Edit tampilan menu di pelanggan
+   ------------------------------------------------------------ */
+.menu-status-wrapper {
+    margin: 10px 0 14px;
+}
+
+.menu-status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.status-tersedia {
+    background: #dff5e3;
+    color: #2e7d32;
+}
+
+.status-habis {
+    background: #ffe0e0;
+    color: #c62828;
+}
+
+.status-nonaktif {
+    background: #ececec;
+    color: #616161;
+}
+
+.menu-image {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
+}
+
+.menu-content {
+    padding: 12px;
+}
+
+.menu-kategori {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 4px;
+}
+
+.menu-nama {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.menu-harga {
+    display: block;
+    color: #d28b00;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.menu-status-wrapper {
+    margin-bottom: 16px;
+}
+
+.menu-status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.kategori-judul {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin: 48px 0 16px;
+    padding-left: 12px;
+    border-left: 4px solid #e8a020;
+}
+
+.status-tersedia {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-habis {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-nonaktif {
+    background: #e5e7eb;
+    color: #374151;
 }

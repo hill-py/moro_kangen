@@ -61,6 +61,8 @@ function buildOrderItems($menus, $post) {
 
 $menus = getMenus($db);
 $kursi = getKursi($db);
+$editId = (int) ($_GET['edit'] ?? 0);
+$isEdit = $editId > 0;
 $action = $_POST['action'] ?? '';
 $errors = [];
 $success = false;
@@ -72,6 +74,98 @@ $posted = [
     'jumlah' => $_POST['jumlah'] ?? [],
     'catatan' => $_POST['catatan'] ?? [],
 ];
+
+if ($isEdit && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+
+    $stmt = $db->prepare("
+        SELECT *
+        FROM pesanan
+        WHERE id_pesanan = ?
+        LIMIT 1
+    ");
+
+    $stmt->bind_param(
+        'i',
+        $editId
+    );
+
+    $stmt->execute();
+
+    $pesanan = $stmt
+        ->get_result()
+        ->fetch_assoc();
+
+    $stmt->close();
+
+    if ($pesanan) {
+
+        $posted['nama_pelanggan']
+            = $pesanan['nama_pelanggan'];
+
+        $posted['jenis_pesanan']
+            = $pesanan['jenis_pesanan'];
+
+        $stmtKursi = $db->prepare("
+    SELECT id_kursi
+    FROM detail_kursi
+    WHERE id_pesanan = ?
+    LIMIT 1
+");
+
+$stmtKursi->bind_param(
+    'i',
+    $editId
+);
+
+$stmtKursi->execute();
+
+$kursiLama = $stmtKursi
+    ->get_result()
+    ->fetch_assoc();
+
+$stmtKursi->close();
+
+if ($kursiLama) {
+
+    $posted['id_kursi']
+        = $kursiLama['id_kursi'];
+
+}
+
+        $stmt = $db->prepare("
+            SELECT
+                id_menu,
+                jumlah,
+                catatan
+            FROM detail_pesanan
+            WHERE id_pesanan = ?
+        ");
+
+        $stmt->bind_param(
+            'i',
+            $editId
+        );
+
+        $stmt->execute();
+
+        $result =
+            $stmt->get_result();
+
+        while ($row =
+            $result->fetch_assoc()) {
+
+            $posted['jumlah']
+                [$row['id_menu']]
+                = $row['jumlah'];
+
+            $posted['catatan']
+                [$row['id_menu']]
+                = $row['catatan'];
+        }
+
+        $stmt->close();
+    }
+}
 
 [$items, $total] = buildOrderItems($menus, $posted);
 
@@ -85,29 +179,122 @@ if ($action === 'confirm' || $action === 'submit') {
     }
 
     if ($posted['jenis_pesanan'] === 'dine_in') {
-        $idKursi = (int) $posted['id_kursi'];
-        $stmt = $db->prepare("SELECT status FROM kursi WHERE id_kursi = ? LIMIT 1");
-        $stmt->bind_param('i', $idKursi);
-        $stmt->execute();
-        $selectedKursi = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
 
-        if (!$selectedKursi || $selectedKursi['status'] !== 'kosong') {
-            $errors[] = 'Pilih kursi yang masih kosong.';
+    $idKursi = (int) $posted['id_kursi'];
+
+    $stmt = $db->prepare("
+        SELECT status
+        FROM kursi
+        WHERE id_kursi = ?
+        LIMIT 1
+    ");
+
+    $stmt->bind_param(
+        'i',
+        $idKursi
+    );
+
+    $stmt->execute();
+
+    $selectedKursi =
+        $stmt->get_result()->fetch_assoc();
+
+    $stmt->close();
+
+    if (!$isEdit) {
+
+        if (
+            !$selectedKursi ||
+            $selectedKursi['status'] !== 'kosong'
+        ) {
+            $errors[] =
+                'Pilih kursi yang masih kosong.';
         }
+
     }
+}
+    }
+
+    if ($action === 'confirm' || $action === 'submit') {
 
     if (count($items) === 0) {
         $errors[] = 'Pilih minimal satu menu yang tersedia.';
     }
 
-    $confirmation = $action === 'confirm' && count($errors) === 0;
+    $confirmation =
+        $action === 'confirm'
+        && count($errors) === 0;
 }
 
 if ($action === 'submit' && count($errors) === 0) {
     $db->begin_transaction();
 
     try {
+      if ($isEdit) {
+
+    $stmt = $db->prepare("
+        DELETE FROM detail_pesanan
+        WHERE id_pesanan = ?
+    ");
+
+    $stmt->bind_param(
+        'i',
+        $editId
+    );
+
+    $stmt->execute();
+    $stmt->close();
+
+    $stmt = $db->prepare("
+        INSERT INTO detail_pesanan
+        (
+            id_pesanan,
+            id_menu,
+            jumlah,
+            catatan,
+            harga_satuan,
+            subtotal
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+    ");
+
+    foreach ($items as $item) {
+
+        $stmt->bind_param(
+            'iiisdd',
+            $editId,
+            $item['id_menu'],
+            $item['jumlah'],
+            $item['catatan'],
+            $item['harga_satuan'],
+            $item['subtotal']
+        );
+
+        $stmt->execute();
+    }
+
+    $stmt->close();
+
+    $stmt = $db->prepare("
+        UPDATE pesanan
+        SET total_pesanan = ?
+        WHERE id_pesanan = ?
+    ");
+
+    $stmt->bind_param(
+        'di',
+        $total,
+        $editId
+    );
+
+    $stmt->execute();
+    $stmt->close();
+
+    $db->commit();
+
+    header('Location: ../pesanan/index.php?success=update');
+    exit;
+}
         $stmt = $db->prepare("INSERT INTO pesanan (nama_pelanggan, jenis_pesanan, total_pesanan, status) VALUES (?, ?, ?, 'menunggu')");
         $stmt->bind_param('ssd', $posted['nama_pelanggan'], $posted['jenis_pesanan'], $total);
         $stmt->execute();
@@ -193,7 +380,9 @@ if ($action === 'submit' && count($errors) === 0) {
 
     <?php if ($confirmation): ?>
       <section class="panel">
-        <h2>Konfirmasi Pesanan</h2>
+        <h2> 
+          <?= $isEdit ? 'Konfirmasi Tambah Pesanan' : 'Konfirmasi Pesanan' ?>
+        </h2>
         <p class="text-muted mb-16">Periksa pesanan sebelum dikirim ke kasir.</p>
 
         <table class="data-table mb-24">
@@ -384,10 +573,13 @@ $pasanganGrup = array_chunk(
 
         <div class="order-summary">
           <div>
-            <strong>Pesanan Baru</strong>
+            <strong>
+              <?= $isEdit ? 'Tambah Pesanan' : 'Pesanan Baru' ?>
+            </strong>
             <p class="text-muted">Total dihitung setelah tombol lanjut ditekan.</p>
           </div>
-          <button type="submit" class="btn btn-primary">Lanjut Konfirmasi</button>
+          <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Tambah Pesanan' : 'Lanjut Konfirmasi' ?>
+          </button>
         </div>
       </form>
     <?php endif; ?>

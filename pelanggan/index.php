@@ -270,24 +270,71 @@ if ($action === 'submit' && count($errors) === 0) {
           <h2>Pilih Kursi</h2>
           <p class="text-muted mb-16">Untuk take away, bagian kursi boleh dikosongkan.</p>
 
-          <div class="denah-grid">
-            <?php foreach ($kursi as $row): ?>
-              <?php $isKosong = $row['status'] === 'kosong'; ?>
-              <label class="kursi-choice">
-                <input
-                  type="radio"
-                  name="id_kursi"
-                  value="<?= (int) $row['id_kursi'] ?>"
-                  <?= !$isKosong ? 'disabled' : '' ?>
-                  <?= (string) $posted['id_kursi'] === (string) $row['id_kursi'] ? 'checked' : '' ?>
-                >
-                <span class="kursi-box <?= $isKosong ? 'kosong' : 'terisi' ?>">
-                  <span><?= h($row['nomor_kursi']) ?></span>
-                  <small><?= $isKosong ? 'Kosong' : 'Terisi' ?></small>
-                </span>
-              </label>
-            <?php endforeach; ?>
-          </div>
+          <?php
+$grupKursi = [];
+
+foreach ($kursi as $row) {
+
+    preg_match('/^[A-Z]+/', $row['nomor_kursi'], $match);
+
+    $huruf = $match[0] ?? 'LAIN';
+
+    $grupKursi[$huruf][] = $row;
+}
+
+$pasanganGrup = array_chunk(
+    array_keys($grupKursi),
+    2
+);
+?>
+
+<?php foreach ($pasanganGrup as $pair): ?>
+
+<div class="denah-grid area-kursi">
+
+    <?php foreach ($pair as $huruf): ?>
+
+        <div class="denah-kelompok-wrap">
+
+            <h4 class="judul-grup">
+                Meja <?= h($huruf) ?>
+            </h4>
+
+            <div class="denah-kelompok">
+
+                <?php foreach ($grupKursi[$huruf] as $row): ?>
+
+                    <?php $isKosong = $row['status'] === 'kosong'; ?>
+
+                    <label class="kursi-choice">
+
+                        <input
+                            type="radio"
+                            name="id_kursi"
+                            value="<?= (int) $row['id_kursi'] ?>"
+                            <?= !$isKosong ? 'disabled' : '' ?>
+                            <?= (string) $posted['id_kursi'] === (string) $row['id_kursi'] ? 'checked' : '' ?>
+                        >
+
+                        <span class="kursi-box <?= $isKosong ? 'kosong' : 'terisi' ?>">
+                            <span><?= h($row['nomor_kursi']) ?></span>
+                            <small><?= $isKosong ? 'Kosong' : 'Terisi' ?></small>
+                        </span>
+
+                    </label>
+
+                <?php endforeach; ?>
+
+            </div>
+
+        </div>
+
+    <?php endforeach; ?>
+
+</div>
+
+<?php endforeach; ?>
+
         </section>
 
         <section class="panel mb-24">
@@ -345,5 +392,51 @@ if ($action === 'submit' && count($errors) === 0) {
       </form>
     <?php endif; ?>
   </main>
+  <script>
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    const jenisPesanan =
+        document.getElementById('jenis_pesanan');
+
+    const areaKursi =
+        document.querySelectorAll('.area-kursi');
+
+    const radioKursi =
+        document.querySelectorAll(
+            'input[name="id_kursi"]'
+        );
+
+    function toggleKursi() {
+
+        if (jenisPesanan.value === 'take_away') {
+
+            areaKursi.forEach(function(item) {
+                item.classList.add('disabled');
+            });
+
+            radioKursi.forEach(function(radio) {
+                radio.checked = false;
+            });
+
+        } else {
+
+            areaKursi.forEach(function(item) {
+                item.classList.remove('disabled');
+            });
+
+        }
+    }
+
+    toggleKursi();
+
+    jenisPesanan.addEventListener(
+        'change',
+        toggleKursi
+    );
+
+});
+
+</script>
 </body>
 </html>

@@ -111,45 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   }
               }
               
-        } elseif ($action === 'delete') {
-            $db->begin_transaction();
-
-            try {
-                $stmt = $db->prepare("SELECT id_kursi FROM detail_kursi WHERE id_pesanan = ?");
-                $stmt->bind_param('i', $idPesanan);
-                $stmt->execute();
-                $kursiResult = $stmt->get_result();
-                $kursiIds = [];
-
-                while ($row = $kursiResult->fetch_assoc()) {
-                    $kursiIds[] = (int) $row['id_kursi'];
-                }
-
-                $stmt->close();
-
-                $stmt = $db->prepare("DELETE FROM pesanan WHERE id_pesanan = ?");
-                $stmt->bind_param('i', $idPesanan);
-                $stmt->execute();
-                $stmt->close();
-
-                if (count($kursiIds) > 0) {
-                    $stmt = $db->prepare("UPDATE kursi SET status = 'kosong' WHERE id_kursi = ?");
-
-                    foreach ($kursiIds as $idKursi) {
-                        $stmt->bind_param('i', $idKursi);
-                        $stmt->execute();
-                    }
-
-                    $stmt->close();
-                }
-
-                $db->commit();
-                $message = 'Pesanan berhasil dihapus.';
-            } catch (Throwable $e) {
-                $db->rollback();
-                $error = 'Gagal menghapus pesanan: ' . $e->getMessage();
-            }
-        }
+        } 
     }
 }
 
@@ -166,6 +128,7 @@ $result = $db->query("
     FROM pesanan p
     LEFT JOIN detail_kursi dk ON dk.id_pesanan = p.id_pesanan
     LEFT JOIN kursi k ON k.id_kursi = dk.id_kursi
+    WHERE p.status <> 'selesai'
     GROUP BY p.id_pesanan
     ORDER BY p.created_at DESC
 ");
@@ -191,6 +154,10 @@ if (count($orders) > 0) {
 }
 
 require_once __DIR__ . '/../includes/header.php';
+
+if (isset($_GET['success']) && $_GET['success'] === 'update') {
+    $message = 'Tambah Pesanan Berhasil';
+}
 ?>
 
 <?php if ($message !== ''): ?>
@@ -250,13 +217,15 @@ require_once __DIR__ . '/../includes/header.php';
                 <?php if (isKaryawan()): ?>
                   <div class="td-actions">
                     <?php if ($order['status'] === 'menunggu'): ?>
-                      <form method="POST">
-                        <input type="hidden" name="action" value="set_status">
-                        <input type="hidden" name="id_pesanan" value="<?= (int) $order['id_pesanan'] ?>">
-                        <input type="hidden" name="status" value="dibayar">
-                        <button type="submit" class="btn btn-success btn-sm">Dibayar</button>
-                      </form>
-                    <?php endif; ?>
+                      <a
+                          href="../pelanggan/index.php?edit=<?= (int) $order['id_pesanan'] ?>"
+                          class="btn btn-primary btn-sm">Edit
+                      </a>
+                      <a
+                          href="../pembayaran/index.php?bayar=<?= (int) $order['id_pesanan'] ?>"
+                          class="btn btn-success btn-sm">Dibayar
+                      </a>
+                      <?php endif; ?>
 
                     <?php if ($order['status'] === 'dibayar'): ?>
                     <form method="POST">
@@ -269,11 +238,7 @@ require_once __DIR__ . '/../includes/header.php';
                     </form>
                   <?php endif; ?>
 
-                    <form method="POST">
-                      <input type="hidden" name="action" value="delete">
-                      <input type="hidden" name="id_pesanan" value="<?= (int) $order['id_pesanan'] ?>">
-                      <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
-                    </form>
+                    
                   </div>
                 <?php else: ?>
                   <span class="text-muted">Lihat saja</span>

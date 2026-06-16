@@ -7,8 +7,10 @@ $baseUrl = '../';
 
 $db = getDB();
 
-$message = '';
+$message = $_GET['success'] ?? '';
 $error = '';
+
+$filter = $_GET['filter'] ?? 'today';
 
 function h($value)
 {
@@ -28,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isKaryawan()) {
 
         $idPesanan = (int) ($_POST['id_pesanan'] ?? 0);
         $metode = $_POST['metode_pembayaran'] ?? '';
+        $nominalBayar = (float) ($_POST['nominal_bayar'] ?? 0);
 
         if (!in_array($metode, ['cash', 'qris'], true)) {
 
@@ -36,10 +39,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isKaryawan()) {
         } else {
 
             $stmt = $db->prepare("
-                SELECT id_pesanan
-                FROM pesanan
-                WHERE id_pesanan = ?
-                AND status = 'menunggu'
+                SELECT
+                    p.id_pesanan,
+                    p.total_pesanan
+                FROM pesanan p
+                LEFT JOIN pembayaran pb
+                    ON pb.id_pesanan = p.id_pesanan
+                WHERE p.id_pesanan = ?
+                AND p.status = 'menunggu'
+                AND pb.id_pembayaran IS NULL
                 LIMIT 1
             ");
 
@@ -56,51 +64,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isKaryawan()) {
 
             } else {
 
-                $db->begin_transaction();
+                $totalTagihan = (float) $pesanan['total_pesanan'];
+                $kembalian = 0;
 
-                try {
+                if ($metode === 'cash') {
 
-                    $stmt = $db->prepare("
-                        INSERT INTO pembayaran
-                        (
-                            id_pesanan,
-                            id_user,
-                            metode_pembayaran
-                        )
-                        VALUES (?, ?, ?)
-                    ");
+                    if ($nominalBayar < $totalTagihan) {
 
-                    $idUser = $_SESSION['id_user'];
+                        $error = 'Uang yang dibayarkan tidak cukup.';
 
-                    $stmt->bind_param(
-                        'iis',
-                        $idPesanan,
-                        $idUser,
-                        $metode
-                    );
+                    } else {
 
-                    $stmt->execute();
-                    $stmt->close();
+                        $kembalian = $nominalBayar - $totalTagihan;
+                    }
+                }
 
-                    $stmt = $db->prepare("
-                        UPDATE pesanan
-                        SET status = 'dibayar'
-                        WHERE id_pesanan = ?
-                    ");
+                if ($error === '') {
 
-                    $stmt->bind_param('i', $idPesanan);
-                    $stmt->execute();
-                    $stmt->close();
+                    $db->begin_transaction();
 
-                    $db->commit();
+                    try {
 
-                    $message = 'Pembayaran berhasil disimpan.';
+                        $stmt = $db->prepare("
+                            INSERT INTO pembayaran
+                            (
+                                id_pesanan,
+                                id_user,
+                                metode_pembayaran
+                            )
+                            VALUES (?, ?, ?)
+                        ");
 
-                } catch (Throwable $e) {
+                        $idUser = $_SESSION['id_user'];
 
-                    $db->rollback();
+                        $stmt->bind_param(
+                            'iis',
+                            $idPesanan,
+                            $idUser,
+                            $metode
+                        );
 
-                    $error = 'Gagal menyimpan pembayaran: ' . $e->getMessage();
+                        $stmt->execute();
+                        $stmt->close();
+
+                        $stmt = $db->prepare("
+                            UPDATE pesanan
+                            SET status = 'dibayar'
+                            WHERE id_pesanan = ?
+                        ");
+
+                        $stmt->bind_param(
+                            'i',
+                            $idPesanan
+                        );
+
+                        $stmt->execute();
+                        $stmt->close();
+
+                        $db->commit();
+
+                        if (
+                            $metode === 'cash' &&
+                            $kembalian > 0
+                        ) {
+
+                            header(
+                                'Location: index.php?success=' .
+                                urlencode(
+                                    'Pembayaran berhasil. Kembalian: ' .
+                                    rupiah($kembalian)
+                                )
+                            );
+
+                        } else {
+
+                            header(
+                                'Location: index.php?success=' .
+                                urlencode(
+                                    'Pembayaran berhasil disimpan.'
+                                )
+                            );
+                        }
+
+                        exit;
+
+                    } catch (Throwable $e) {
+
+                        $db->rollback();
+
+                        $error =
+                            'Gagal menyimpan pembayaran: ' .
+                            $e->getMessage();
+                    }
                 }
             }
         }
@@ -132,8 +187,11 @@ if (
             ON dk.id_pesanan = p.id_pesanan
         LEFT JOIN kursi k
             ON k.id_kursi = dk.id_kursi
+        LEFT JOIN pembayaran pb
+            ON pb.id_pesanan = p.id_pesanan
         WHERE p.id_pesanan = ?
         AND p.status = 'menunggu'
+        AND pb.id_pembayaran IS NULL
         GROUP BY p.id_pesanan
         LIMIT 1
     ");
@@ -178,26 +236,60 @@ while ($row = $result->fetch_assoc()) {
 
 $paymentHistory = [];
 
-$result = $db->query("
-    SELECT
-        pb.id_pembayaran,
-        pb.metode_pembayaran,
-        pb.status,
-        pb.tanggal_bayar,
-        p.nama_pelanggan,
-        p.total_pesanan,
-        u.username
-    FROM pembayaran pb
-    INNER JOIN pesanan p
-        ON p.id_pesanan = pb.id_pesanan
-    INNER JOIN user u
-        ON u.id_user = pb.id_user
-    ORDER BY pb.tanggal_bayar DESC
-");
+if ($filter === 'all') {
+
+    $sql = "
+        SELECT
+            pb.id_pembayaran,
+            p.id_pesanan,
+            pb.metode_pembayaran,
+            pb.status,
+            pb.tanggal_bayar,
+            p.nama_pelanggan,
+            p.total_pesanan,
+            u.username
+        FROM pembayaran pb
+        JOIN pesanan p
+            ON p.id_pesanan = pb.id_pesanan
+        JOIN user u
+            ON u.id_user = pb.id_user
+        ORDER BY pb.tanggal_bayar DESC
+    ";
+
+    $stmt = $db->prepare($sql);
+
+} else {
+
+    $sql = "
+        SELECT
+            pb.id_pembayaran,
+            p.id_pesanan,
+            pb.metode_pembayaran,
+            pb.status,
+            pb.tanggal_bayar,
+            p.nama_pelanggan,
+            p.total_pesanan,
+            u.username
+        FROM pembayaran pb
+        JOIN pesanan p
+            ON p.id_pesanan = pb.id_pesanan
+        JOIN user u
+            ON u.id_user = pb.id_user
+        WHERE DATE(pb.tanggal_bayar)=CURDATE()
+        ORDER BY pb.tanggal_bayar DESC
+    ";
+
+    $stmt = $db->prepare($sql);
+}
+
+$stmt->execute();
+$result = $stmt->get_result();
 
 while ($row = $result->fetch_assoc()) {
     $paymentHistory[] = $row;
 }
+
+$stmt->close();
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -273,6 +365,7 @@ require_once __DIR__ . '/../includes/header.php';
 
             <select
                 name="metode_pembayaran"
+                id="metode_pembayaran"
                 required
             >
                 <option value="">Pilih Metode</option>
@@ -282,19 +375,53 @@ require_once __DIR__ . '/../includes/header.php';
 
         </div>
 
-        <button
-            type="submit"
-            class="btn btn-success"
+        <div
+            class="form-group mt-16"
+            id="cash-group"
+            style="display:none;"
         >
-            Simpan Pembayaran
-        </button>
 
-        <a
-            href="index.php"
-            class="btn btn-secondary"
-        >
-            Batal
-        </a>
+            <label>Nominal Dibayar</label>
+
+            <input
+                type="number"
+                name="nominal_bayar"
+                id="nominal_bayar"
+                min="0"
+                placeholder="Masukkan nominal uang"
+            >
+
+            <p class="text-muted mt-8">
+                Kembalian:
+                <strong id="kembalian">
+                    Rp 0
+                </strong>
+            </p>
+
+        </div>
+
+        <div class="flex gap-12 mt-16">
+
+            <button
+                type="submit"
+                class="btn btn-success"
+                onclick="
+                    return confirm(
+                        'Simpan pembayaran ini?'
+                    )
+                "
+            >
+                Simpan Pembayaran
+            </button>
+
+            <a
+                href="index.php"
+                class="btn btn-secondary"
+            >
+                Batal
+            </a>
+
+        </div>
 
     </form>
 
@@ -392,6 +519,31 @@ require_once __DIR__ . '/../includes/header.php';
         <h3 class="card-title">
             Riwayat Pembayaran
         </h3>
+
+        <form method="GET">
+            <select
+                name="filter"
+                onchange="this.form.submit()"
+            >
+                <option
+                    value="today"
+                    <?= $filter === 'today'
+                        ? 'selected'
+                        : '' ?>
+                >
+                    Hari Ini
+                </option>
+
+                <option
+                    value="all"
+                    <?= $filter === 'all'
+                        ? 'selected'
+                        : '' ?>
+                >
+                    Semua
+                </option>
+            </select>
+        </form>
     </div>
 
     <?php if (empty($paymentHistory)): ?>
@@ -409,6 +561,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                 <thead>
                     <tr>
+                        <th>ID Pesanan</th>
                         <th>Tanggal</th>
                         <th>Pelanggan</th>
                         <th>Metode</th>
@@ -422,6 +575,9 @@ require_once __DIR__ . '/../includes/header.php';
                 <?php foreach ($paymentHistory as $payment): ?>
 
                     <tr>
+                        <td>
+                            #<?= (int)$payment['id_pesanan'] ?>
+                        </td>
 
                         <td>
                             <?= date(
@@ -461,5 +617,81 @@ require_once __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 
 </div>
+
+<?php if ($selectedOrder): ?>
+<script>
+
+const metode =
+    document.getElementById(
+        'metode_pembayaran'
+    );
+
+const cashGroup =
+    document.getElementById(
+        'cash-group'
+    );
+
+const nominal =
+    document.getElementById(
+        'nominal_bayar'
+    );
+
+const kembali =
+    document.getElementById(
+        'kembalian'
+    );
+
+const total =
+    <?= (float)$selectedOrder['total_pesanan'] ?>;
+
+metode.addEventListener(
+    'change',
+    function () {
+
+        if (this.value === 'cash') {
+
+            cashGroup.style.display =
+                'block';
+
+            nominal.required = true;
+
+        } else {
+
+            cashGroup.style.display =
+                'none';
+
+            nominal.required = false;
+
+            nominal.value = '';
+
+            kembali.textContent =
+                'Rp 0';
+        }
+    }
+);
+
+if (nominal) {
+
+    nominal.addEventListener(
+        'input',
+        function () {
+
+            let bayar =
+                parseInt(this.value) || 0;
+
+            let kembalian =
+                bayar - total;
+
+            if (kembalian < 0) {
+                kembalian = 0;
+            }
+
+            kembali.textContent ='Rp ' + kembalian.toLocaleString('id-ID');
+        }
+    );
+}
+
+</script>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

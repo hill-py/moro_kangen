@@ -13,7 +13,7 @@ function rupiah($value) {
 
 function getMenus($db) {
     $menus = [];
-    $result = $db->query("SELECT id_menu, nama_menu, kategori, harga, status_menu FROM menu WHERE status_menu <> 'nonaktif' ORDER BY kategori, nama_menu");
+    $result = $db->query("SELECT id_menu, nama_menu, kategori, harga, deskripsi, status_menu FROM menu WHERE status_menu <> 'nonaktif' ORDER BY kategori, nama_menu");
     while ($row = $result->fetch_assoc()) {
         $menus[(int) $row['id_menu']] = $row;
     }
@@ -525,25 +525,89 @@ $pasanganGrup = array_chunk(
 <?php endforeach; ?>
 
         </section>
+<?php
 
+$menuMakanan = [];
+$menuMinuman = [];
+
+foreach ($menus as $menu) {
+
+    if (
+        strtolower($menu['kategori']) === 'minuman'
+    ) {
+        $menuMinuman[] = $menu;
+    } else {
+        $menuMakanan[] = $menu;
+    }
+}
+?>
         <section class="panel mb-24">
           <h2>Pilih Menu</h2>
           <p class="text-muted mb-16">Menu habis tidak bisa dipilih.</p>
 
-          <div class="menu-grid">
-            <?php foreach ($menus as $menu): ?>
-              <?php
-                $idMenu = (int) $menu['id_menu'];
-                $isAvailable = $menu['status_menu'] === 'tersedia';
-                $jumlah = (int) ($posted['jumlah'][$idMenu] ?? 0);
-                $catatan = $posted['catatan'][$idMenu] ?? '';
-              ?>
-              <section class="menu-card <?= !$isAvailable ? 'menu-habis' : '' ?>">
-                <h3 class="menu-nama"><?= h($menu['nama_menu']) ?></h3>
-                <p class="menu-kategori"><?= h($menu['kategori']) ?></p>
-                <strong class="menu-harga"><?= rupiah($menu['harga']) ?></strong>
-                <p class="text-muted mt-8"><?= $isAvailable ? 'Tersedia' : 'Habis' ?></p>
+          <h3 class="kategori-judul">
+    Kategori Makanan
+</h3>
 
+<div class="menu-grid">
+
+<?php foreach ($menuMakanan as $menu): ?>
+              <?php
+$idMenu = (int) $menu['id_menu'];
+$isAvailable = $menu['status_menu'] === 'tersedia';
+$jumlah = (int) ($posted['jumlah'][$idMenu] ?? 0);
+$catatan = $posted['catatan'][$idMenu] ?? '';
+
+$imageName =
+    strtolower(
+        str_replace(
+            ' ',
+            '-',
+            $menu['nama_menu']
+        )
+    ) . '.jpg';
+
+$imagePath =
+    '../img/' . $imageName;
+
+if (
+    !file_exists(
+        __DIR__ .
+        '/../img/' .
+        $imageName
+    )
+) {
+    $imagePath =
+        '../img/default-food.jpg';
+}
+?>
+              <section class="menu-card <?= !$isAvailable ? 'menu-habis' : '' ?>">
+
+    <img
+        src="<?= h($imagePath) ?>"
+        alt="<?= h($menu['nama_menu']) ?>"
+        class="menu-image"
+    >
+
+    <div class="menu-content">
+
+        <h3 class="menu-nama">
+            <?= h($menu['nama_menu']) ?>
+        </h3>
+
+        <strong class="menu-harga">
+            <?= rupiah($menu['harga']) ?>
+        </strong>
+
+        <div class="menu-status-wrapper">
+
+            <span
+    class="menu-status-badge status-<?= h($menu['status_menu']) ?>"
+>
+    <?= ucfirst(h($menu['status_menu'])) ?>
+</span>
+
+        </div>
                 <div class="form-group mt-16">
                   <label for="jumlah_<?= $idMenu ?>">Jumlah</label>
                   <input
@@ -558,17 +622,128 @@ $pasanganGrup = array_chunk(
                 </div>
 
                 <div class="form-group">
-                  <label for="catatan_<?= $idMenu ?>">Catatan</label>
-                  <textarea
-                    id="catatan_<?= $idMenu ?>"
-                    name="catatan[<?= $idMenu ?>]"
-                    rows="2"
-                    <?= !$isAvailable ? 'disabled' : '' ?>
-                  ><?= h($catatan) ?></textarea>
-                </div>
-              </section>
+    <label for="catatan_<?= $idMenu ?>">Catatan</label>
+
+    <textarea
+        id="catatan_<?= $idMenu ?>"
+        name="catatan[<?= $idMenu ?>]"
+        rows="2"
+        <?= !$isAvailable ? 'disabled' : '' ?>
+    ><?= h($catatan) ?></textarea>
+</div>
+
+</div>
+
+</section>
             <?php endforeach; ?>
           </div>
+          <h3 class="kategori-judul">
+    Kategori Minuman
+</h3>
+
+<div class="menu-grid">
+
+<?php foreach ($menuMinuman as $menu): ?>
+
+<?php
+$idMenu = (int) $menu['id_menu'];
+$isAvailable = $menu['status_menu'] === 'tersedia';
+$jumlah = (int) ($posted['jumlah'][$idMenu] ?? 0);
+$catatan = $posted['catatan'][$idMenu] ?? '';
+
+$imageName =
+    strtolower(
+        str_replace(
+            ' ',
+            '-',
+            $menu['nama_menu']
+        )
+    ) . '.jpg';
+
+$imagePath =
+    '../img/' . $imageName;
+
+if (
+    !file_exists(
+        __DIR__ .
+        '/../img/' .
+        $imageName
+    )
+) {
+    $imagePath =
+        '../img/default-food.jpg';
+}
+?>
+
+<section class="menu-card <?= !$isAvailable ? 'menu-habis' : '' ?>">
+
+    <img
+        src="<?= h($imagePath) ?>"
+        alt="<?= h($menu['nama_menu']) ?>"
+        class="menu-image"
+    >
+
+    <div class="menu-content">
+
+        <p class="menu-kategori">
+            <?= h($menu['kategori']) ?>
+        </p>
+
+        <h3 class="menu-nama">
+            <?= h($menu['nama_menu']) ?>
+        </h3>
+
+        <strong class="menu-harga">
+            <?= rupiah($menu['harga']) ?>
+        </strong>
+
+        <div class="menu-status-wrapper">
+
+            <span
+                class="menu-status-badge status-<?= h($menu['status_menu']) ?>"
+            >
+                <?= h($menu['status_menu']) ?>
+            </span>
+
+        </div>
+
+        <div class="form-group mt-16">
+            <label for="jumlah_<?= $idMenu ?>">Jumlah</label>
+
+            <input
+                type="number"
+                id="jumlah_<?= $idMenu ?>"
+                name="jumlah[<?= $idMenu ?>]"
+                value="<?= $jumlah ?>"
+                min="0"
+                max="99"
+                <?= !$isAvailable ? 'disabled' : '' ?>
+            >
+        </div>
+
+        <div class="form-group">
+
+            <label for="catatan_<?= $idMenu ?>">
+                Catatan
+            </label>
+
+            <textarea
+                id="catatan_<?= $idMenu ?>"
+                name="catatan[<?= $idMenu ?>]"
+                rows="2"
+                <?= !$isAvailable ? 'disabled' : '' ?>
+            ><?= h($catatan) ?></textarea>
+
+        </div>
+
+    </div>
+
+</section>
+
+<?php endforeach; ?>
+
+</div>
+
         </section>
 
         <div class="order-summary">

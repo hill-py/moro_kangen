@@ -26,7 +26,7 @@ CREATE TABLE user (
 CREATE TABLE kursi (
   id_kursi    INT AUTO_INCREMENT PRIMARY KEY,
   nomor_kursi VARCHAR(10) NOT NULL UNIQUE,
-  status      ENUM('kosong','terisi') NOT NULL DEFAULT 'kosong'
+  status      ENUM('kosong','terisi','nonaktif') NOT NULL DEFAULT 'kosong'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ------------------------------------------------------------
@@ -111,6 +111,20 @@ CREATE TABLE pengeluaran (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
+-- 9. STOK BAHAN BAKU
+-- ============================================================
+CREATE TABLE stock_bahan_baku (
+  id_bahan INT(11) NOT NULL AUTO_INCREMENT,
+  nama_bahan VARCHAR(100) NOT NULL,
+  stok INT(11) NOT NULL DEFAULT 0,
+  satuan VARCHAR(30) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id_bahan),
+  UNIQUE KEY unique_nama_bahan (nama_bahan)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- ============================================================
 -- DATA AWAL (SEEDING)
 -- ============================================================
 
@@ -121,20 +135,43 @@ INSERT INTO user (username, password, role) VALUES
 
 -- Kursi awal
 INSERT INTO kursi (nomor_kursi, status) VALUES
-('A1','kosong'),('A2','kosong'),('A3','kosong'),('A4','kosong'),
-('B1','kosong'),('B2','kosong'),('B3','kosong'),('B4','kosong'),
-('C1','kosong'),('C2','kosong');
+('A01','kosong'),
+('A02','kosong'),
+('A03','kosong'),
+('A04','kosong'),
+('A05','kosong'),
+('A06','kosong'),
+('A07','kosong'),
+('A08','kosong'),
+('A09','kosong'),
+('A10','kosong'),
+
+('B01','kosong'),
+('B02','kosong'),
+('B03','kosong'),
+('B04','kosong'),
+('B05','kosong'),
+('B06','kosong'),
+('B07','kosong'),
+('B08','kosong'),
+('B09','kosong'),
+('B10','kosong');
 
 -- Menu awal
 INSERT INTO menu (nama_menu, kategori, harga, deskripsi, status_menu) VALUES
-('Mie Ayam Biasa',   'Mie Ayam',  10000, 'Mie ayam dengan topping ayam cincang', 'tersedia'),
-('Mie Ayam Spesial', 'Mie Ayam',  13000, 'Mie ayam dengan topping ayam + pangsit', 'tersedia'),
-('Bakso Biasa',      'Bakso',     10000, 'Bakso sapi dengan kuah kaldu', 'tersedia'),
-('Bakso Spesial',    'Bakso',     13000, 'Bakso sapi + tahu + pangsit', 'tersedia'),
-('Sate Ayam',        'Sate',      15000, 'Sate ayam dengan bumbu kacang', 'tersedia'),
-('Sate Kambing',     'Sate',      20000, 'Sate kambing dengan bumbu kecap', 'tersedia'),
-('Sate Sapi',        'Sate',      18000, 'Sate sapi dengan bumbu kacang', 'tersedia'),
-('Gulai',            'Gulai',     15000, 'Gulai daging dengan kuah santan', 'tersedia'),
-('Tongseng',         'Tongseng',  16000, 'Tongseng daging dengan sayuran', 'tersedia'),
-('Tengkleng',        'Tengkleng', 15000, 'Tengkleng tulang dengan kuah bening', 'tersedia'),
-('Soto',             'Soto',      12000, 'Soto ayam dengan kuah bening', 'tersedia');
+('Mie Ayam Biasa',   'Makanan',  10000, 'Mie ayam dengan topping ayam cincang', 'tersedia'),
+('Mie Ayam Spesial', 'Makanan',  13000, 'Mie ayam dengan topping ayam + pangsit', 'tersedia'),
+('Bakso Biasa',      'Makanan',     10000, 'Bakso sapi dengan kuah kaldu', 'tersedia'),
+('Bakso Spesial',    'Makanan',     13000, 'Bakso sapi + tahu + pangsit', 'tersedia'),
+('Sate Ayam',        'Makanan',      15000, 'Sate ayam dengan bumbu kacang', 'tersedia'),
+('Sate Kambing',     'Makanan',      20000, 'Sate kambing dengan bumbu kecap', 'tersedia'),
+('Sate Sapi',        'Makanan',      18000, 'Sate sapi dengan bumbu kacang', 'tersedia'),
+('Gulai',            'Makanan',     15000, 'Gulai daging dengan kuah santan', 'tersedia'),
+('Tongseng',         'Makanan',  16000, 'Tongseng daging dengan sayuran', 'tersedia'),
+('Tengkleng',        'Makanan', 15000, 'Tengkleng tulang dengan kuah bening', 'tersedia'),
+('Soto',             'Makanan',      12000, 'Soto ayam dengan kuah bening', 'tersedia'),
+('Es Jeruk','Minuman',4000,'Es jeruk segar','tersedia'),
+('Es Teh Kampul','Minuman',5000,'Es teh kampul khas Moro Kangen','tersedia'),
+('Air Putih','Minuman',1000,'Air mineral','tersedia'),
+('Es Teh','Minuman',3000,'Es teh manis','tersedia');
+

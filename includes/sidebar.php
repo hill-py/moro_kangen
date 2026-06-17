@@ -20,6 +20,7 @@ function navLink($href, $label, $folder, $targetFolder, $baseUrl = '../') {
       <?php navLink('pembayaran/index.php', 'Pembayaran', $folder, 'pembayaran') ?>
       <?php navLink('menu/index.php', 'Menu', $folder, 'menu') ?>
       <?php navLink('kursi/index.php', 'Kursi', $folder, 'kursi') ?>
+    <?php navLink('Stock Bahan Baku/index.php', 'Stock Bahan Baku', $folder, 'Stock Bahan Baku') ?>
     </div>
 
     <div class="nav-section">

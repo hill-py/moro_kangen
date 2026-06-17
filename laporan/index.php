@@ -7,7 +7,6 @@ $db = getDB(); // ✅ FIX UTAMA
 
 $pageTitle = "Laporan";
 require_once __DIR__ . '/../includes/header.php';
-require_once __DIR__ . '/../includes/sidebar.php';
 
 // FILTER TANGGAL
 $tgl_awal  = $_GET['tgl_awal'] ?? date('Y-m-01');
@@ -60,22 +59,36 @@ $stmt->bind_param("ss", $tgl_awal, $tgl_akhir);
 $stmt->execute();
 $total_pesanan = $stmt->get_result()->fetch_assoc()['total'];
 
-
-// ======================================================
 // KEUNTUNGAN
-// ======================================================
 $keuntungan = $total_pemasukan - $total_pengeluaran;
+
+$sql = "
+SELECT
+    m.nama_menu,
+    SUM(dp.jumlah) AS total_terjual
+FROM detail_pesanan dp
+JOIN menu m
+    ON m.id_menu = dp.id_menu
+JOIN pesanan p
+    ON p.id_pesanan = dp.id_pesanan
+WHERE DATE(p.created_at)
+BETWEEN ? AND ?
+GROUP BY m.id_menu
+ORDER BY total_terjual DESC
+LIMIT 5
+";
+
+$stmt = $db->prepare($sql);
+$stmt->bind_param(
+    "ss",
+    $tgl_awal,
+    $tgl_akhir
+);
+$stmt->execute();
+
+$menuTerlaris =
+    $stmt->get_result();
 ?>
-
-<div class="layout">
-
-  <div class="main-content">
-
-    <div class="topbar">
-      <div class="page-title">Laporan Keuangan</div>
-    </div>
-
-    <div class="content-area">
 
       <!-- FILTER -->
       <div class="card">
@@ -174,7 +187,12 @@ $keuntungan = $total_pemasukan - $total_pengeluaran;
                     <?= strtoupper($row['metode_pembayaran']) ?>
                   </span>
                 </td>
-                <td><?= $row['tanggal_bayar'] ?></td>
+                <td><?= date(
+                      'd/m/Y H:i',
+                      strtotime($row['tanggal_bayar'])
+                      )
+                    ?>
+                </td>
               </tr>
 
             <?php endwhile; ?>
@@ -220,7 +238,7 @@ $keuntungan = $total_pemasukan - $total_pengeluaran;
             ?>
 
               <tr>
-                <td><?= $row['tanggal'] ?></td>
+                <td><?= date('d/m/Y', strtotime($row['tanggal'])) ?></td>
                 <td><?= htmlspecialchars($row['keterangan']) ?></td>
                 <td>Rp <?= number_format($row['nominal'],0,',','.') ?></td>
                 <td><?= $row['username'] ?></td>
@@ -233,8 +251,60 @@ $keuntungan = $total_pemasukan - $total_pengeluaran;
         </div>
       </div>
 
-    </div>
-  </div>
-</div>
+      <!-- Menu Terlaris -->
+      <div class="card">
+          <div class="card-header">
+              <div class="card-title">
+                  Menu Terlaris
+              </div>
+          </div>
+          <?php if ($menuTerlaris->num_rows === 0): ?>
+              <div class="empty-state">
+                  <h3>Belum Ada Data</h3>
+                  <p>
+                      Belum ada menu yang terjual
+                      pada periode ini.
+                  </p>
+              </div>
+          <?php else: ?>
+          <div class="table-wrap">
+              <table>
+                  <thead>
+                      <tr>
+                          <th>Peringkat</th>
+                          <th>Menu</th>
+                          <th>Total Terjual</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                  <?php
+                  $no = 1;
+                  while (
+                      $row =
+                      $menuTerlaris->fetch_assoc()
+                  ):
+                  ?>
+                      <tr>
+                          <td>
+                              #<?= $no++ ?>
+                          </td>
+                          <td>
+                              <?= htmlspecialchars(
+                                  $row['nama_menu']
+                              ) ?>
+                          </td>
+                          <td>
+                              <?= (int)
+                                  $row['total_terjual']
+                              ?>
+                              porsi
+                          </td>
+                      </tr>
+                  <?php endwhile; ?>
+                  </tbody>
+              </table>
+          </div>
+          <?php endif; ?>
+      </div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

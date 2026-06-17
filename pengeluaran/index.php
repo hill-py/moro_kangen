@@ -10,6 +10,17 @@ $db = getDB();
 $message = '';
 $error = '';
 
+if (isset($_GET['success'])) {
+
+    if ($_GET['success'] === 'add') {
+        $message = 'Pengeluaran berhasil ditambahkan.';
+    }
+
+    if ($_GET['success'] === 'edit') {
+        $message = 'Pengeluaran berhasil diperbarui.';
+    }
+}
+
 function h($value)
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
@@ -66,25 +77,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isKaryawan()) {
             $stmt->execute();
             $stmt->close();
 
-            $message = 'Pengeluaran berhasil ditambahkan.';
+            header('Location: index.php?success=add');
+            exit;
         }
     }
 
-    if ($action === 'delete') {
+    if ($action === 'edit') {
 
-        $idPengeluaran = (int) ($_POST['id_pengeluaran'] ?? 0);
+        $idPengeluaran =
+            (int) ($_POST['id_pengeluaran'] ?? 0);
 
-        $stmt = $db->prepare("
-            DELETE FROM pengeluaran
-            WHERE id_pengeluaran = ?
-        ");
+        $tanggal =
+            $_POST['tanggal'] ?? '';
 
-        $stmt->bind_param('i', $idPengeluaran);
-        $stmt->execute();
-        $stmt->close();
+        $nominal =
+            (float) ($_POST['nominal'] ?? 0);
 
-        $message = 'Data pengeluaran berhasil dihapus.';
+        $keterangan =
+            trim($_POST['keterangan'] ?? '');
+
+        if (
+            $tanggal === '' ||
+            $nominal <= 0 ||
+            $keterangan === ''
+        ) {
+
+            $error =
+                'Semua field wajib diisi.';
+
+        } else {
+
+            $stmt = $db->prepare("
+                UPDATE pengeluaran
+                SET
+                    tanggal = ?,
+                    nominal = ?,
+                    keterangan = ?
+                WHERE id_pengeluaran = ?
+            ");
+
+            $stmt->bind_param(
+                'sdsi',
+                $tanggal,
+                $nominal,
+                $keterangan,
+                $idPengeluaran
+            );
+
+            $stmt->execute();
+            $stmt->close();
+
+            header('Location: index.php?success=edit');
+            exit;
+        }
     }
+}
+
+$editData = null;
+
+if (
+    isset($_GET['edit']) &&
+    isKaryawan()
+) {
+
+    $idEdit =
+        (int) $_GET['edit'];
+
+    $stmt = $db->prepare("
+        SELECT *
+        FROM pengeluaran
+        WHERE id_pengeluaran = ?
+        LIMIT 1
+    ");
+
+    $stmt->bind_param(
+        'i',
+        $idEdit
+    );
+
+    $stmt->execute();
+
+    $editData =
+        $stmt
+        ->get_result()
+        ->fetch_assoc();
+
+    $stmt->close();
 }
 
 $pengeluaran = [];
@@ -127,7 +205,9 @@ require_once __DIR__ . '/../includes/header.php';
 
     <div class="card-header">
         <h3 class="card-title">
-            Tambah Pengeluaran
+            <?= $editData
+                ? 'Edit Pengeluaran'
+                : 'Tambah Pengeluaran' ?>
         </h3>
     </div>
 
@@ -136,15 +216,28 @@ require_once __DIR__ . '/../includes/header.php';
         <input
             type="hidden"
             name="action"
-            value="add"
+            value="<?= $editData ? 'edit' : 'add' ?>"
         >
+
+        <?php if ($editData): ?>
+
+        <input
+            type="hidden"
+            name="id_pengeluaran"
+            value="<?= (int)$editData['id_pengeluaran'] ?>"
+        >
+
+        <?php endif; ?>
 
         <div class="form-group">
             <label>Tanggal</label>
             <input
                 type="date"
                 name="tanggal"
-                value="<?= date('Y-m-d') ?>"
+                value="<?= h(
+                    $editData['tanggal']
+                    ?? date('Y-m-d')
+                ) ?>"
                 required
             >
         </div>
@@ -155,6 +248,10 @@ require_once __DIR__ . '/../includes/header.php';
                 type="number"
                 name="nominal"
                 min="1"
+                value="<?= h(
+                    $editData['nominal']
+                    ?? ''
+                ) ?>"
                 required
             >
         </div>
@@ -164,6 +261,10 @@ require_once __DIR__ . '/../includes/header.php';
             <input
                 type="text"
                 name="keterangan"
+                value="<?= h(
+                    $editData['keterangan']
+                    ?? ''
+                ) ?>"
                 required
             >
         </div>
@@ -172,7 +273,9 @@ require_once __DIR__ . '/../includes/header.php';
             type="submit"
             class="btn btn-primary"
         >
-            Simpan
+            <?= $editData
+                ? 'Update'
+                : 'Simpan' ?>
         </button>
 
     </form>
@@ -238,28 +341,12 @@ require_once __DIR__ . '/../includes/header.php';
 
                             <?php if (isKaryawan()): ?>
 
-                                <form method="POST">
-
-                                    <input
-                                        type="hidden"
-                                        name="action"
-                                        value="delete"
-                                    >
-
-                                    <input
-                                        type="hidden"
-                                        name="id_pengeluaran"
-                                        value="<?= (int) $row['id_pengeluaran'] ?>"
-                                    >
-
-                                    <button
-                                        type="submit"
-                                        class="btn btn-danger btn-sm"
-                                    >
-                                        Hapus
-                                    </button>
-
-                                </form>
+                                <a
+                                    href="?edit=<?= (int)$row['id_pengeluaran'] ?>"
+                                    class="btn btn-secondary btn-sm"
+                                >
+                                    Edit
+                                </a>
 
                             <?php else: ?>
 

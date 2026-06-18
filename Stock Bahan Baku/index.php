@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isKaryawan()) {
         } elseif ($stokAwal < 0) {
             $error = 'Stok awal tidak boleh minus.';
         } else {
-            $sql_cek = "SELECT id_bahan FROM `morokangen`.`Stock Bahan Baku` WHERE nama_bahan = ? LIMIT 1";
+            $sql_cek = "SELECT id_bahan FROM `morokangen`.`stock_bahan_baku` WHERE nama_bahan = ? LIMIT 1";
             $stmt = $db->prepare($sql_cek);
             $stmt->bind_param('s', $namaBahan);
             $stmt->execute();

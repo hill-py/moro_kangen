@@ -136,7 +136,7 @@
 <body>
 
     <header>
-        <a href="auth/login.php" class="btn-admin">Login Admin</a>
+        <a href="../auth/login.php" class="btn-admin">Login Admin</a>
     </header>
 
     <main>
@@ -147,7 +147,7 @@
 
         <div class="card-pesanan">
             <p>Selamat Datang! Silakan klik tombol di bawah ini untuk memulai pesanan makanan Anda.</p>
-            <a href="pelanggan/index.php" class="btn-pesanan">Buat Pesanan</a>
+            <a href="../pelanggan/index.php" class="btn-pesanan">Buat Pesanan</a>
         </div>
     </main>
 

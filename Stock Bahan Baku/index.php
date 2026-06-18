@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isKaryawan()) {
 // ✅ FIX LINE 91: Menggunakan query langsung tanpa prepare 
 // agar spasi nama tabel tidak memicu mysqli_sql_exception
 // ======================================================
-$result_count = $db->query("SELECT COUNT(*) AS total FROM `moro_kangen`.`Stock Bahan Baku`");
+$result_count = $db->query("SELECT COUNT(*) AS total FROM `moro_kangen`.`stock_bahan_baku`");
 $total_jenis_bahan = $result_count ? $result_count->fetch_assoc()['total'] : 0;
 ?>
 
@@ -168,7 +168,7 @@ $total_jenis_bahan = $result_count ? $result_count->fetch_assoc()['total'] : 0;
 
                   <?php
                   // Menggunakan query direct agar terhindar dari limitasi karakter spasi prepare statement XAMPP
-                  $result = $db->query("SELECT id_bahan, nama_bahan, stok, satuan FROM `moro_kangen`.`Stock Bahan Baku` ORDER BY nama_bahan ASC");
+                  $result = $db->query("SELECT id_bahan, nama_bahan, stok, satuan FROM `moro_kangen`.`stock_bahan_baku` ORDER BY nama_bahan ASC");
 
                   if ($result && $result->num_rows > 0):
                       while ($row = $result->fetch_assoc()):

@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isKaryawan()) {
         } elseif ($stokAwal < 0) {
             $error = 'Stok awal tidak boleh minus.';
         } else {
-            $sql_cek = "SELECT id_bahan FROM `morokangen`.`stock_bahan_baku` WHERE nama_bahan = ? LIMIT 1";
+            $sql_cek = "SELECT id_bahan FROM `moro_kangen`.`stock_bahan_baku` WHERE nama_bahan = ? LIMIT 1";
             $stmt = $db->prepare($sql_cek);
             $stmt->bind_param('s', $namaBahan);
             $stmt->execute();
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isKaryawan()) {
             if ($exists) {
                 $error = 'Bahan baku tersebut sudah terdaftar.';
             } else {
-                $sql_insert = "INSERT INTO `morokangen`.`Stock Bahan Baku` (nama_bahan, stok, satuan) VALUES (?, ?, ?)";
+                $sql_insert = "INSERT INTO `moro_kangen`.`stock_bahan_baku` (nama_bahan, stok, satuan) VALUES (?, ?, ?)";
                 $stmt = $db->prepare($sql_insert);
                 $stmt->bind_param('sis', $namaBahan, $stokAwal, $satuan);
                 $stmt->execute();
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isKaryawan()) {
         $jumlah   = (int)($_POST['jumlah'] ?? 0);
         $operasi  = $_POST['operasi'] ?? '';
 
-        $sql_cari = "SELECT nama_bahan, stok FROM `morokangen`.`Stock Bahan Baku` WHERE id_bahan = ? LIMIT 1";
+        $sql_cari = "SELECT nama_bahan, stok FROM `moro_kangen`.`stock_bahan_baku` WHERE id_bahan = ? LIMIT 1";
         $stmt = $db->prepare($sql_cari);
         $stmt->bind_param('i', $idBahan);
         $stmt->execute();
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isKaryawan()) {
             if ($stokBaru < 0) {
                 $error = 'Stok tidak mencukupi untuk dikurangi.';
             } else {
-                $sql_update = "UPDATE `morokangen`.`Stock Bahan Baku` SET stok = ? WHERE id_bahan = ?";
+                $sql_update = "UPDATE `moro_kangen`.`stock_bahan_baku` SET stok = ? WHERE id_bahan = ?";
                 $stmt = $db->prepare($sql_update);
                 $stmt->bind_param('ii', $stokBaru, $idBahan);
                 $stmt->execute();
